@@ -114,7 +114,9 @@ export class TextScanner extends EventDispatcher {
         /** @type {boolean} */
         this._preventMiddleMouseOnTextHover = false;
         /** @type {boolean} */
-        this._matchTypePrefix = false;
+        this._preventBackForwardOnPage = false;
+        /** @type {boolean} */
+        this._preventBackForwardOnTextHover = false;
         /** @type {number} */
         this._sentenceScanExtent = 0;
         /** @type {boolean} */
@@ -268,11 +270,11 @@ export class TextScanner extends EventDispatcher {
         layoutAwareScan,
         preventMiddleMouseOnPage,
         preventMiddleMouseOnTextHover,
+        preventBackForwardOnPage,
+        preventBackForwardOnTextHover,
         sentenceParsingOptions,
-        matchTypePrefix,
         scanWithoutMousemove,
         scanResolution,
-        pageType,
     }) {
         if (Array.isArray(inputs)) {
             this._inputs = inputs.map((input) => this._convertInput(input));
@@ -301,8 +303,11 @@ export class TextScanner extends EventDispatcher {
         if (typeof preventMiddleMouseOnTextHover === 'boolean') {
             this._preventMiddleMouseOnTextHover = preventMiddleMouseOnTextHover;
         }
-        if (typeof matchTypePrefix === 'boolean') {
-            this._matchTypePrefix = pageType === 'search' ? matchTypePrefix : false;
+        if (typeof preventBackForwardOnPage === 'boolean') {
+            this._preventBackForwardOnPage = preventBackForwardOnPage;
+        }
+        if (typeof preventBackForwardOnTextHover === 'boolean') {
+            this._preventBackForwardOnTextHover = preventBackForwardOnTextHover;
         }
         if (typeof scanWithoutMousemove === 'boolean') {
             this._scanWithoutMousemove = scanWithoutMousemove;
@@ -645,6 +650,22 @@ export class TextScanner extends EventDispatcher {
      * @param {PointerEvent} e
      * @returns {boolean|void}
      */
+    _onMouseUp(e) {
+        switch (e.button) {
+            case 3: // Back
+            case 4: // Forward
+                if (this._preventBackForwardOnPage || (this._preventBackForwardOnTextHover && this._isMouseOverText)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                break;
+        }
+    }
+
+    /**
+     * @param {PointerEvent} e
+     * @returns {boolean|void}
+     */
     _onMouseDown(e) {
         if (this._preventNextMouseDown) {
             this._preventNextMouseDown = false;
@@ -716,9 +737,20 @@ export class TextScanner extends EventDispatcher {
         void this._searchAt(e.clientX, e.clientY, inputInfo);
     }
 
-    /** */
-    _onAuxClick() {
+    /**
+     * @param {PointerEvent} e
+     * @returns {boolean|void}
+     */
+    _onAuxClick(e) {
         this._preventNextContextMenu = false;
+        switch (e.button) {
+            case 1: // Middle
+                if (this._preventMiddleMouseOnPage || (this._preventMiddleMouseOnTextHover && this._isMouseOverText)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                break;
+        }
     }
 
     /**
@@ -1123,6 +1155,7 @@ export class TextScanner extends EventDispatcher {
             [this._node, 'pointerup', this._onPointerUp.bind(this), capture],
             [this._node, 'pointercancel', this._onPointerCancel.bind(this), capture],
             [this._node, 'pointerout', this._onPointerOut.bind(this), capture],
+            [this._node, 'mouseup', this._onMouseUp.bind(this), capture],
             [this._node, 'mousedown', this._onMouseDown.bind(this), capture],
             [this._node, 'touchmove', this._onTouchMove.bind(this), {passive: false, capture}],
             [this._node, 'touchend', this._onTouchEnd.bind(this), capture],
@@ -1228,7 +1261,6 @@ export class TextScanner extends EventDispatcher {
 
         /** @type {import('api').FindTermsDetails} */
         const details = {};
-        if (this._matchTypePrefix) { details.matchType = 'prefix'; }
         const {dictionaryEntries, originalTextLength} = await this._api.termsFind(searchText, details, optionsContext);
         if (dictionaryEntries.length === 0) { return null; }
 

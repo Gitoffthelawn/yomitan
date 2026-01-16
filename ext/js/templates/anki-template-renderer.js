@@ -781,46 +781,68 @@ export class AnkiTemplateRenderer {
     }
 
     /**
-     * @param {import('dictionary-data').TermGlossaryStructuredContent} content
-     * @param {StructuredContentGenerator} structuredContentGenerator
-     * @returns {string[]}
+     * @param {import('structured-content.js').Content[]} content
+     * @returns {import('structured-content.js').Content[]}
      */
-    _extractGlossaryData(content, structuredContentGenerator) {
+    _extractGlossaryStructuredContentRecursive(content) {
         /** @type {import('structured-content.js').Content[]} */
-        const glossaryContentQueue = [];
-        const structuredContentQueue = [content.content];
-        while (structuredContentQueue.length > 0) {
-            const structuredContent = structuredContentQueue.pop();
+        const extractedContent = [];
+        for (let i = 0; i < content.length; i++) {
+            const structuredContent = content[i];
             if (Array.isArray(structuredContent)) {
-                structuredContentQueue.push(...structuredContent);
-            } else if (typeof structuredContent === 'object' && structuredContent.content) {
+                extractedContent.push(...this._extractGlossaryStructuredContentRecursive(structuredContent));
+            } else if (typeof structuredContent === 'object' && structuredContent) {
                 // @ts-expect-error - Checking if `data` exists
                 if (structuredContent.data?.content === 'glossary') {
-                    glossaryContentQueue.push(structuredContent);
+                    extractedContent.push(structuredContent);
                     continue;
                 }
-                structuredContentQueue.push(structuredContent.content);
+                if (structuredContent.content) {
+                    extractedContent.push(...this._extractGlossaryStructuredContentRecursive([structuredContent.content]));
+                }
             }
         }
 
+        return extractedContent;
+    }
+
+    /**
+     * @param {import('structured-content.js').Content[]} content
+     * @param {StructuredContentGenerator} structuredContentGenerator
+     * @returns {string[]}
+     */
+    _convertGlossaryStructuredContentRecursive(content, structuredContentGenerator) {
         /** @type {string[]} */
         const rawGlossaryContent = [];
-        while (glossaryContentQueue.length > 0) {
-            const structuredGloss = glossaryContentQueue.pop();
+        for (let i = 0; i < content.length; i++) {
+            const structuredGloss = content[i];
             if (typeof structuredGloss === 'string') {
                 rawGlossaryContent.push(structuredGloss);
             } else if (Array.isArray(structuredGloss)) {
-                glossaryContentQueue.push(...structuredGloss);
+                rawGlossaryContent.push(...this._convertGlossaryStructuredContentRecursive(structuredGloss, structuredContentGenerator));
             } else if (typeof structuredGloss === 'object' && structuredGloss.content) {
                 if (structuredGloss.tag === 'ruby') {
                     const node = structuredContentGenerator.createStructuredContent(structuredGloss.content, '');
                     rawGlossaryContent.push(node !== null ? this._getStructuredContentText(node) : '');
                     continue;
                 }
-                glossaryContentQueue.push(structuredGloss.content);
+                rawGlossaryContent.push(...this._convertGlossaryStructuredContentRecursive([structuredGloss.content], structuredContentGenerator));
             }
         }
         return rawGlossaryContent;
+    }
+
+    /**
+     * @param {import('dictionary-data').TermGlossaryStructuredContent} content
+     * @param {StructuredContentGenerator} structuredContentGenerator
+     * @returns {string[]}
+     */
+    _extractGlossaryData(content, structuredContentGenerator) {
+        /** @type {import('structured-content.js').Content[]} */
+        const glossaryContentQueue = this._extractGlossaryStructuredContentRecursive([content.content]);
+
+        /** @type {string[]} */
+        return this._convertGlossaryStructuredContentRecursive(glossaryContentQueue, structuredContentGenerator);
     }
 
     /**

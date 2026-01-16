@@ -427,6 +427,10 @@
                         If no conditions are specified, the profile will only be used if it is selected as the default profile.
                     </p>
                     <p>
+                        When using the Flags condition, <code>clipboard</code> is the only valid input.
+                        This lets the search page apply another profile’s settings when text is copied, provided <code>Enable search page clipboard text monitoring</code> is enabled.
+                    </p>
+                    <p>
                         <a tabindex="0" class="more-toggle" data-parent-distance="3">Hide&hellip;</a>
                     </p>
                 </div>
@@ -675,9 +679,10 @@
         </div>
         <div class="modal-body">
             <p>
-                A custom URL can be used to play audio from any URL.
+                A custom URL can be used to play audio from any URL.<br>
                 The replacement tags <code data-select-on-click="">{term}</code> and <code data-select-on-click="">{reading}</code>
                 can be used to specify which term and reading is being looked up.<br>
+                <code data-select-on-click="">{language}</code> is also available for sources that require an iso language string.<br>
             </p>
             <p>
                 Example:<br>
@@ -697,6 +702,11 @@
             <p>
                 A custom URL to a JSON file which lists one or more audio URLs for a given term.
                 The format of the JSON file is described in <a href="/data/schemas/custom-audio-list-schema.json" target="_blank" rel="noopener noreferrer">this schema file</a>.
+            </p>
+            <p>
+                The replacement tags <code data-select-on-click="">{term}</code> and <code data-select-on-click="">{reading}</code>
+                can be used to specify which term and reading is being looked up.<br>
+                <code data-select-on-click="">{language}</code> is also available for sources that require an iso language string.<br>
             </p>
             <p>
                 Example:<br>
@@ -807,20 +817,22 @@
         <div class="modal-header"><div class="modal-title">Input Action Prevention</div></div>
         <div class="modal-body">
             <div>
-                Prevent middle mouse button actions on:
+                Prevent secondary mouse button actions on:
                 <a tabindex="0" class="more-toggle more-only" data-parent-distance="2">(?)</a>
             </div>
             <div class="more" hidden>
                 <p>
-                    This option is used to disable the default action of the middle mouse button in different contexts.
-                    This can be useful for preventing the scroll action that the middle mouse button is typically mapped to,
-                    which is otherwise difficult to disable inside extension pages via other means.
+                    This option is used to disable the default action of the secondary mouse buttons in different contexts.
+                    This can be useful for preventing actions that the middle button and buttons 4 and 5 are typically
+                    mapped to (scrolling and back/forward, respectively), which are otherwise difficult to disable inside
+                    extension pages via other means.
                 </p>
                 <p>
                     <a tabindex="0" class="more-toggle" data-parent-distance="3">Less&hellip;</a>
                 </p>
             </div>
             <div class="input-prevention-option-list">
+                Middle mouse button:
                 <label class="input-prevention-option-list-item">
                     <label class="checkbox"><input type="checkbox" data-setting="scanning.preventMiddleMouse.onTextHover"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
                     <span>Text Hover</span>
@@ -839,6 +851,29 @@
                 </label>
                 <label class="input-prevention-option-list-item">
                     <label class="checkbox"><input type="checkbox" data-setting="scanning.preventMiddleMouse.onSearchQuery"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
+                    <span>Search query</span>
+                </label>
+            </div>
+            <div class="input-prevention-option-list">
+                Back/forward mouse buttons:
+                <label class="input-prevention-option-list-item">
+                    <label class="checkbox"><input type="checkbox" data-setting="scanning.preventBackForward.onTextHover"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
+                    <span>Text Hover</span>
+                </label>
+                <label class="input-prevention-option-list-item">
+                    <label class="checkbox"><input type="checkbox" data-setting="scanning.preventBackForward.onWebPages"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
+                    <span>Webpages</span>
+                </label>
+                <label class="input-prevention-option-list-item">
+                    <label class="checkbox"><input type="checkbox" data-setting="scanning.preventBackForward.onPopupPages"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
+                    <span>Popups</span>
+                </label>
+                <label class="input-prevention-option-list-item">
+                    <label class="checkbox"><input type="checkbox" data-setting="scanning.preventBackForward.onSearchPages"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
+                    <span>Search page</span>
+                </label>
+                <label class="input-prevention-option-list-item">
+                    <label class="checkbox"><input type="checkbox" data-setting="scanning.preventBackForward.onSearchQuery"><span class="checkbox-body"><span class="checkbox-fill"></span><span class="checkbox-border"></span><span class="checkbox-check"></span></span></label>
                     <span>Search query</span>
                 </label>
             </div>

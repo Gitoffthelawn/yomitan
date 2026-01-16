@@ -129,7 +129,8 @@
                                     "fontSize",
                                     "lineHeight",
                                     "enableYomitanApi",
-                                    "yomitanApiServer"
+                                    "yomitanApiServer",
+                                    "yomitanApiAllowCssSanitizationBypass"
                                 ],
                                 "properties": {
                                     "enable": {
@@ -142,7 +143,7 @@
                                     },
                                     "resultOutputMode": {
                                         "type": "string",
-                                        "enum": ["group", "merge", "split"],
+                                        "enum": ["group", "merge", "split", "term"],
                                         "default": "group"
                                     },
                                     "fontFamily": {
@@ -346,6 +347,10 @@
                                     "yomitanApiServer": {
                                         "type": "string",
                                         "default": "http://127.0.0.1:19633"
+                                    },
+                                    "yomitanApiAllowCssSanitizationBypass": {
+                                        "type": "boolean",
+                                        "default": false
                                     }
                                 }
                             },
@@ -479,6 +484,7 @@
                                 "required": [
                                     "inputs",
                                     "preventMiddleMouse",
+                                    "preventBackForward",
                                     "selectText",
                                     "alphanumeric",
                                     "autoHideResults",
@@ -495,6 +501,9 @@
                                     "matchTypePrefix",
                                     "hidePopupOnCursorExit",
                                     "hidePopupOnCursorExitDelay",
+                                    "reducedMotionScrolling",
+                                    "reducedMotionScrollingScale",
+                                    "reducedMotionScrollingSwipeThreshold",
                                     "normalizeCssZoom",
                                     "scanWithoutMousemove",
                                     "scanResolution"
@@ -708,6 +717,34 @@
                                             }
                                         }
                                     },
+                                    "preventBackForward": {
+                                        "type": "object",
+                                        "required": [
+                                            "onTextHover",
+                                            "onWebPages",
+                                            "onPopupPages",
+                                            "onSearchPages",
+                                            "onSearchQuery"
+                                        ],
+                                        "properties": {
+                                            "onWebPages": {
+                                                "type": "boolean",
+                                                "default": false
+                                            },
+                                            "onPopupPages": {
+                                                "type": "boolean",
+                                                "default": false
+                                            },
+                                            "onSearchPages": {
+                                                "type": "boolean",
+                                                "default": false
+                                            },
+                                            "onSearchQuery": {
+                                                "type": "boolean",
+                                                "default": false
+                                            }
+                                        }
+                                    },
                                     "selectText": {
                                         "type": "boolean",
                                         "default": true
@@ -742,7 +779,7 @@
                                     "popupNestingMaxDepth": {
                                         "type": "integer",
                                         "minimum": 0,
-                                        "default": 0
+                                        "default": 10
                                     },
                                     "enablePopupSearch": {
                                         "type": "boolean",
@@ -776,6 +813,19 @@
                                         "type": "number",
                                         "minimum": 0,
                                         "default": 0
+                                    },
+                                    "reducedMotionScrolling": {
+                                        "type": "boolean",
+                                        "default": false
+                                    },
+                                    "reducedMotionScrollingScale": {
+                                        "type": "number",
+                                        "default": 1
+                                    },
+                                    "reducedMotionScrollingSwipeThreshold": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "default": 40
                                     },
                                     "normalizeCssZoom": {
                                         "type": "boolean",
@@ -947,9 +997,11 @@
                                     "fieldTemplates",
                                     "suspendNewCards",
                                     "displayTagsAndFlags",
+                                    "targetTags",
                                     "noteGuiMode",
                                     "apiKey",
-                                    "downloadTimeout"
+                                    "downloadTimeout",
+                                    "forceSync"
                                 ],
                                 "properties": {
                                     "enable": {
@@ -1098,8 +1150,15 @@
                                     },
                                     "displayTagsAndFlags": {
                                         "type": "string",
-                                        "enum": ["never", "always", "non-standard"],
+                                        "enum": ["never", "always", "non-standard", "custom"],
                                         "default": "never"
+                                    },
+                                    "targetTags": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "default": []
                                     },
                                     "noteGuiMode": {
                                         "type": "string",
@@ -1114,6 +1173,10 @@
                                         "type": "number",
                                         "default": 0,
                                         "minimum": 0
+                                    },
+                                    "forceSync": {
+                                        "type": "boolean",
+                                        "default": false
                                     }
                                 }
                             },

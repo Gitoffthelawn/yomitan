@@ -153,6 +153,7 @@ export type GeneralOptions = {
     sortFrequencyDictionaryOrder: SortFrequencyDictionaryOrder;
     stickySearchHeader: boolean;
     enableYomitanApi: boolean;
+    yomitanApiAllowCssSanitizationBypass: boolean;
 };
 
 export type PopupWindowOptions = {
@@ -185,7 +186,8 @@ export type AudioSourceOptions = {
 
 export type ScanningOptions = {
     inputs: ScanningInput[];
-    preventMiddleMouse: ScanningPreventMiddleMouseOptions;
+    preventMiddleMouse: ScanningPreventSecondaryMouseOptions;
+    preventBackForward: ScanningPreventSecondaryMouseOptions;
     selectText: boolean;
     alphanumeric: boolean;
     autoHideResults: boolean;
@@ -202,6 +204,9 @@ export type ScanningOptions = {
     matchTypePrefix: boolean;
     hidePopupOnCursorExit: boolean;
     hidePopupOnCursorExitDelay: number;
+    reducedMotionScrolling: boolean;
+    reducedMotionScrollingScale: number;
+    reducedMotionScrollingSwipeThreshold: number;
     normalizeCssZoom: boolean;
     scanWithoutMousemove: boolean;
     scanResolution: string;
@@ -238,7 +243,7 @@ export type ScanningInputOptions = {
     minimumTouchTime: number;
 };
 
-export type ScanningPreventMiddleMouseOptions = {
+export type ScanningPreventSecondaryMouseOptions = {
     onTextHover: boolean;
     onWebPages: boolean;
     onPopupPages: boolean;
@@ -304,9 +309,11 @@ export type AnkiOptions = {
     fieldTemplates: string | null;
     suspendNewCards: boolean;
     displayTagsAndFlags: AnkiDisplayTagsAndFlags;
+    targetTags: string[];
     noteGuiMode: AnkiNoteGuiMode;
     apiKey: string;
     downloadTimeout: number;
+    forceSync: boolean;
 };
 
 export type AnkiScreenshotOptions = {
@@ -376,7 +383,7 @@ export type AccessibilityOptions = {
     forceGoogleDocsHtmlRendering: boolean;
 };
 
-export type PreventMiddleMouseOptions = {
+export type PreventSecondaryMouseOptions = {
     onTextHover: boolean;
     onWebPages: boolean;
     onPopupPages: boolean;
@@ -384,7 +391,7 @@ export type PreventMiddleMouseOptions = {
     onSearchQuery: boolean;
 };
 
-export type ResultOutputMode = 'group' | 'merge' | 'split';
+export type ResultOutputMode = 'group' | 'merge' | 'split' | 'term';
 
 export type PopupDisplayMode = 'default' | 'full-width';
 
@@ -430,7 +437,7 @@ export type AnkiDuplicateScope = 'collection' | 'deck' | 'deck-root';
 
 export type AnkiDuplicateBehavior = 'prevent' | 'overwrite' | 'new';
 
-export type AnkiDisplayTagsAndFlags = 'never' | 'always' | 'non-standard';
+export type AnkiDisplayTagsAndFlags = 'never' | 'always' | 'non-standard' | 'custom';
 
 export type AnkiNoteGuiMode = 'browse' | 'edit';
 

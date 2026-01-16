@@ -17,6 +17,7 @@
  */
 
 import {EventListenerCollection} from '../core/event-listener-collection.js';
+import {ExtensionError} from '../core/extension-error.js';
 import {log} from '../core/log.js';
 import {toError} from '../core/to-error.js';
 import {deferPromise} from '../core/utilities.js';
@@ -91,6 +92,8 @@ export class DisplayAnki {
         this._audioDownloadIdleTimeout = null;
         /** @type {string[]} */
         this._noteTags = [];
+        /** @type {string[]} */
+        this._targetTags = [];
         /** @type {import('settings').AnkiCardFormat[]} */
         this._cardFormats = [];
         /** @type {import('settings').DictionariesOptions} */
@@ -109,6 +112,8 @@ export class DisplayAnki {
         this._onViewNotesButtonContextMenuBind = this._onViewNotesButtonContextMenu.bind(this);
         /** @type {(event: import('popup-menu').MenuCloseEvent) => void} */
         this._onViewNotesButtonMenuCloseBind = this._onViewNotesButtonMenuClose.bind(this);
+        /** @type {boolean} */
+        this._forceSync = false;
     }
 
     /** */
@@ -196,6 +201,7 @@ export class DisplayAnki {
             dictionaries,
             anki: {
                 tags,
+                targetTags,
                 duplicateScope,
                 duplicateScopeCheckAllModels,
                 duplicateBehavior,
@@ -206,6 +212,7 @@ export class DisplayAnki {
                 noteGuiMode,
                 screenshot: {format, quality},
                 downloadTimeout,
+                forceSync,
             },
             scanning: {length: scanLength},
         } = options;
@@ -224,9 +231,11 @@ export class DisplayAnki {
         this._scanLength = scanLength;
         this._noteGuiMode = noteGuiMode;
         this._noteTags = [...tags];
+        this._targetTags = [...targetTags];
         this._audioDownloadIdleTimeout = (Number.isFinite(downloadTimeout) && downloadTimeout > 0 ? downloadTimeout : null);
         this._cardFormats = cardFormats;
         this._dictionaries = dictionaries;
+        this._forceSync = forceSync;
 
         void this._updateAnkiFieldTemplates(options);
     }
@@ -506,6 +515,16 @@ export class DisplayAnki {
             for (const tag of this._noteTags) {
                 displayTags.delete(tag);
             }
+        } else if (this._displayTagsAndFlags === 'custom') {
+            const tagsToRemove = [];
+            for (const tag of displayTags) {
+                if (typeof tag === 'string' && !this._targetTags.includes(tag)) {
+                    tagsToRemove.push(tag);
+                }
+            }
+            for (const tag of tagsToRemove) {
+                displayTags.delete(tag);
+            }
         }
 
         if (displayTags.size > 0) {
@@ -763,6 +782,14 @@ export class DisplayAnki {
                 this._updateSaveButtonForDuplicateBehavior(button, [noteId]);
 
                 this._updateViewNoteButton(dictionaryEntryIndex, cardFormatIndex, [noteId]);
+
+                if (this._forceSync) {
+                    try {
+                        await this._display.application.api.forceSync();
+                    } catch (e) {
+                        allErrors.push(toError(e));
+                    }
+                }
             }
         }
     }
@@ -942,22 +969,52 @@ export class DisplayAnki {
             }
         }
 
-        const noteInfoList = await Promise.all(notePromises);
-        const notes = noteInfoList.map(({note}) => note);
+        const noteInfoList = (await Promise.all(notePromises));
+        const validNotes = [];
+        /** @type {(import('anki').NoteInfoWrapper?)[]} */
+        const invalidAndPlaceholderNotes = [];
+        for (const noteInfo of noteInfoList) {
+            const note = noteInfo.note;
+            if (note.deckName.length > 0 && note.modelName.length > 0) {
+                validNotes.push(note);
+                invalidAndPlaceholderNotes.push(null);
+            } else {
+                invalidAndPlaceholderNotes.push({
+                    canAdd: false,
+                    valid: false,
+                    noteIds: null,
+                });
+            }
+        }
 
         let infos;
         let ankiError = null;
         try {
-            if (!await this._display.application.api.isAnkiConnected()) {
-                throw new Error('Anki not connected');
+            if (this._checkForDuplicates) {
+                infos = await this._display.application.api.getAnkiNoteInfo(validNotes, this._isAdditionalInfoEnabled());
+            } else {
+                const isAnkiConnected = await this._display.application.api.isAnkiConnected();
+                infos = this._getAnkiNoteInfoForceValueIfValid(validNotes, isAnkiConnected);
+                ankiError = isAnkiConnected ? null : new Error('Anki not connected');
             }
-
-            infos = this._checkForDuplicates ?
-                await this._display.application.api.getAnkiNoteInfo(notes, this._isAdditionalInfoEnabled()) :
-                this._getAnkiNoteInfoForceValueIfValid(notes, true);
         } catch (e) {
-            infos = this._getAnkiNoteInfoForceValueIfValid(notes, false);
-            ankiError = toError(e);
+            infos = this._getAnkiNoteInfoForceValueIfValid(validNotes, false);
+            ankiError = (e instanceof ExtensionError && e.message.includes('Anki connection failure')) ?
+                new Error('Anki not connected') :
+                toError(e);
+        }
+
+        /** @type {(import('anki').NoteInfoWrapper)[]} */
+        const notesDupechecked = [];
+        for (const invalidAndPlaceholderNote of invalidAndPlaceholderNotes) {
+            if (invalidAndPlaceholderNote !== null) {
+                notesDupechecked.push(invalidAndPlaceholderNote);
+            } else {
+                const info = infos.shift();
+                if (typeof info !== 'undefined') {
+                    notesDupechecked.push(info);
+                }
+            }
         }
 
         /** @type {import('display-anki').DictionaryEntryDetails[]} */
@@ -965,7 +1022,7 @@ export class DisplayAnki {
 
         for (let i = 0, ii = noteInfoList.length; i < ii; ++i) {
             const {note, errors, requirements} = noteInfoList[i];
-            const {canAdd, valid, noteIds, noteInfos} = infos[i];
+            const {canAdd, valid, noteIds, noteInfos} = notesDupechecked[i];
             const {cardFormatIndex, cardFormat, index} = noteTargets[i];
             results[index].noteMap.set(cardFormatIndex, {cardFormat, note, errors, requirements, canAdd, valid, noteIds, noteInfos, ankiError});
         }
